@@ -1,0 +1,25 @@
+[
+  { "wait": 1500 },
+  { "click": "button:visible:text-is('CLOSE')", "optional": true, "timeout": 2000 },
+  { "click": "#auGuest", "optional": true, "timeout": 1000 },
+  { "wait": 800 },
+  { "click": "[data-tab=board]", "optional": true },
+  { "wait": 2500 },
+  { "click": "[data-tab=play]", "optional": true },
+  { "wait": 500 },
+  { "click": "#startBtn" },
+  { "wait": 4000 },
+  {
+    "repeat": 12,
+    "steps": [
+      { "press": "KeyW", "hold": 700 },
+      { "mouse": { "move": [900, 300] } },
+      { "click": [720, 450] },
+      { "press": "KeyD", "hold": 400 },
+      { "press": "Space" },
+      { "mouse": { "move": [500, 400] } },
+      { "click": [720, 450] },
+      { "press": "KeyA", "hold": 400 }
+    ]
+  }
+]

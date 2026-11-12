@@ -1,0 +1,6 @@
+node_modules/
+# Forks of your sites/games and your live allowlist stay local
+ZEROED/
+zero.config.json
+*.log
+.DS_Store

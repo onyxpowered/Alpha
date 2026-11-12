@@ -1,0 +1,9 @@
+{
+  "allow": [],
+  "assetOrigins": [],
+  "clean": true,
+  "depth": 3,
+  "maxPages": 200,
+  "maxBytes": 524288000,
+  "pageTimeoutMs": 30000
+}
