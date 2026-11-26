@@ -1,0 +1,17 @@
+[
+  { "wait": 2000 },
+  { "click": "button:visible:text-is('Accept')", "optional": true },
+  { "click": "#gta3-launch-btn", "timeout": 10000 },
+  { "wait": 15000 },
+  { "repeat": 8, "steps": [
+      { "wait": 15000 },
+      { "press": "Enter" }
+  ] },
+  { "waitFor": "#canvas", "timeout": 5000, "optional": true },
+  { "repeat": 6, "steps": [
+      { "press": "Enter" },
+      { "wait": 10000 },
+      { "press": "ArrowDown" },
+      { "press": "Enter" }
+  ] }
+]

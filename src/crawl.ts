@@ -66,6 +66,14 @@ export async function crawl(context: BrowserContext, o: CrawlOptions): Promise<R
   const seen = new Set<string>([keyOf(o.start)]);
   const queue: { url: URL; depth: number }[] = [{ url: o.start, depth: 0 }];
   const page = await context.newPage();
+  // Chromium keeps only ~100 MB of response bodies for the inspector, so big parallel downloads
+  // (e.g. 20 MB data-package chunks) get evicted before capture reads them. Raise the limits.
+  try {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Network.enable', { maxTotalBufferSize: 1_500_000_000, maxResourceBufferSize: 600_000_000 });
+  } catch {
+    /* non-Chromium or CDP unavailable: fall back to default buffering */
+  }
 
   while (queue.length && pages.length < o.maxPages) {
     const { url, depth } = queue.shift()!;

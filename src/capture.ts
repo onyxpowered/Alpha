@@ -14,6 +14,8 @@ export interface Captured {
 export type NetKind =
   | 'http' | 'ws-open' | 'ws-sent' | 'ws-recv' | 'ws-close' | 'blocked'
   | 'rtc-open' | 'rtc-channel' | 'rtc-sent' | 'rtc-recv' | 'rtc-state' | 'rtc-ice' | 'rtc-media';
+/** Large packaged binaries that the inspector cache tends to evict (e.g. gta3-data.data.03, game.pak, level.bin.2). */
+const BIG_BINARY = /\.(data|pak|pck|bin|zip|img)(\.\d+)?$/i;
 const RTC_KINDS = new Set<string>(['rtc-open', 'rtc-channel', 'rtc-sent', 'rtc-recv', 'rtc-state', 'rtc-ice', 'rtc-media']);
 // Response headers worth keeping as hosting/backend fingerprints.
 const HINT_HEADERS = ['server', 'x-nf-request-id', 'x-vercel-id', 'cf-ray', 'x-amz-cf-id', 'x-amz-request-id', 'x-github-request-id', 'x-served-by', 'x-powered-by'];
@@ -110,6 +112,30 @@ export function attachCapture(context: BrowserContext, allowedOrigins: Set<strin
       block(url, 'tracker');
       return route.abort();
     }
+    // Big binary packages (file_packager chunks, .pak/.bin/.zip): Chromium evicts their bodies from the
+    // inspector cache before the response handler can read them, so read them here, from the page's own
+    // request (same headers the browser sent), save them, and hand the same bytes back to the page.
+    if (route.request().method() === 'GET' && BIG_BINARY.test(u.pathname)) {
+      try {
+        const res = await route.fetch();
+        const body = await res.body();
+        const key = keyOf(u);
+        if (res.status() >= 200 && res.status() < 300 && !assets.has(key)) {
+          if (total + body.length > maxBytes) {
+            skipped.push({ url: redactUrl(url), reason: 'byte cap reached' });
+          } else {
+            total += body.length;
+            const h = res.headers();
+            assets.set(key, { url: u, contentType: h['content-type'] ?? '', body, encoding: h['content-encoding'] ?? '', cacheControl: h['cache-control'] ?? '' });
+          }
+        }
+        ev({ kind: 'http', url, method: 'GET', status: res.status(), resourceType: route.request().resourceType(), size: body.length });
+        return route.fulfill({ response: res, body });
+      } catch (e) {
+        skipped.push({ url: redactUrl(url), reason: `route fetch failed: ${e instanceof Error ? e.message.split('\n')[0]!.slice(0, 120) : String(e)}` });
+        return route.fallback();
+      }
+    }
     return route.continue();
   });
 
@@ -183,10 +209,19 @@ export function attachCapture(context: BrowserContext, allowedOrigins: Set<strin
     const rh = res.headers();
     for (const name of HINT_HEADERS) if (rh[name] && !hints[name]) hints[name] = rh[name]!.slice(0, 100);
     let body: Buffer | null = null;
-    try {
-      body = await res.body();
-    } catch {
-      /* redirect / aborted */
+    let bodyErr = '';
+    for (let attempt = 0; attempt < 3 && !body; attempt++) {
+      try {
+        body = await res.body();
+      } catch (e) {
+        /* redirect / aborted, or the browser already dropped a large body: retry briefly, then record why */
+        bodyErr = e instanceof Error ? e.message.split('\n')[0]!.slice(0, 120) : String(e);
+        if (res.status() >= 300 && res.status() < 400) break;
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+    if (!body && req.method() === 'GET' && res.status() >= 200 && res.status() < 300 && rt !== 'document' && !assets.has(keyOf(u))) {
+      skipped.push({ url: redactUrl(res.url()), reason: `body unavailable: ${bodyErr || 'empty'}` });
     }
     if (rt === 'fetch' || rt === 'xhr') {
       ev({ kind: 'http', url: res.url(), method: req.method(), status: res.status(), resourceType: rt, size: body?.length, payload: redactText(req.postData()?.slice(0, PREVIEW) ?? '') || undefined });

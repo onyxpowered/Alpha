@@ -1,0 +1,20 @@
+[
+  { "wait": 22000 },
+  { "mouse": { "move": [720, 778] } },
+  { "wait": 500 },
+  { "click": [720, 778] },
+  { "wait": 20000 },
+  { "repeat": 6, "steps": [ { "click": [1058, 815] }, { "wait": 2500 } ] },
+  { "wait": 3000 },
+  { "repeat": 60, "steps": [
+      { "press": "KeyW", "hold": 2500 },
+      { "mouse": { "move": [1000, 450] } },
+      { "press": "Space" },
+      { "press": "KeyW", "hold": 2500 },
+      { "mouse": { "move": [440, 450] } },
+      { "press": "KeyD", "hold": 1200 },
+      { "press": "KeyW", "hold": 2500 },
+      { "click": [1058, 815], "optional": true },
+      { "mouse": { "move": [720, 300] } }
+  ] }
+]

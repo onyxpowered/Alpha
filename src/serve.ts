@@ -57,6 +57,7 @@ export function serveFork(root: string, port: number, isolate: boolean): Promise
         'content-type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
         'accept-ranges': 'bytes',
         'cache-control': 'no-store',
+        'cross-origin-resource-policy': 'cross-origin',
       };
       if (isolate) {
         headers['cross-origin-opener-policy'] = 'same-origin';
